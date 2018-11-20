@@ -90,6 +90,8 @@ final class CodecOutputList extends AbstractList<Object> implements RandomAccess
         }
     }
 
+    // 解码结果列表CodecOutputList是Netty定制的一个特殊列表，
+    // 该列表在线程中被缓存，可循环使用来存储解码结果，减少不必要的列表实例创建，从而提升性能
     static CodecOutputList newInstance() {
         return CODEC_OUTPUT_LISTS_POOL.get().getOrCreate();
     }

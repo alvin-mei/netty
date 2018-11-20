@@ -104,7 +104,9 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
          */
         @Override
         public void reset(ChannelConfig config) {
+            // 重置 ChannelConfig 对象
             this.config = config;
+            // 重置 maxMessagePerRead 属性
             maxMessagePerRead = maxMessagesPerRead();
             totalMessages = totalBytesRead = 0;
         }
@@ -121,8 +123,10 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
 
         @Override
         public void lastBytesRead(int bytes) {
+            // 设置最后一次读取字节数
             lastBytesRead = bytes;
             if (bytes > 0) {
+                // 总共读取字节数
                 totalBytesRead += bytes;
             }
         }
@@ -137,6 +141,7 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
             return continueReading(defaultMaybeMoreSupplier);
         }
 
+        // 判断是否循环是否继续，读取( 接受 )新的客户端连接
         @Override
         public boolean continueReading(UncheckedBooleanSupplier maybeMoreDataSupplier) {
             return config.isAutoRead() &&

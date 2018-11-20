@@ -48,6 +48,12 @@ import java.util.concurrent.ConcurrentMap;
  * Be aware that this class is marked as {@link Sharable} and so the implementation must be safe to be re-used.
  *
  * @param <C>   A sub-type of {@link Channel}
+ * ChannelInitializer是一个特殊的inboun通道处理器，一旦通道注册到事件循环中时，提供一个便捷的初始化通道的方式。
+ * 具体的实现一般在Bootstrap#handler(ChannelHandler) ,ServerBootstrap#handler(ChannelHandler)和 ServerBootstrap#childHandler(ChannelHandler)中，设置Channel的管道。
+ *           通道初始化器ChannelInitializer实际上为Inbound通道处理器，当通道注册到事件循环中后，添加通道初始化器到通道，
+ *           触发handlerAdded事件，然后将初始化器的上下文放入通道初始化器的上下文Map中，如果放入成功且先前不存在，initChannel(C ch)，
+ *           初始化通道，其中C为当前通道，我们可以获取C的管道，添加通道处理器到管道，这就是通道初始化器的作用。
+ * 添加完后，从通道的管道中移除初始化器上下文，并从通道初始化器的上下文Map中移除通道初始化器上下文。
  */
 @Sharable
 public abstract class ChannelInitializer<C extends Channel> extends ChannelInboundHandlerAdapter {
@@ -55,6 +61,8 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(ChannelInitializer.class);
     // We use a ConcurrentMap as a ChannelInitializer is usually shared between all Channels in a Bootstrap /
     // ServerBootstrap. This way we can reduce the memory usage compared to use Attributes.
+    //由于通道初始器经常在Bootstrap /ServerBootstrap的所有通道中共享，所以我们用一个ConcurrentMap作为初始化器。
+    //这种方式，相对于使用属性方式，减少了内存的使用。
     private final ConcurrentMap<ChannelHandlerContext, Boolean> initMap = PlatformDependent.newConcurrentHashMap();
 
     /**
@@ -73,9 +81,11 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
     public final void channelRegistered(ChannelHandlerContext ctx) throws Exception {
         // Normally this method will never be called as handlerAdded(...) should call initChannel(...) and remove
         // the handler.
+        //正常情况下这个方法不为被调用，因为handlerAdded可以用于初始化通道
         if (initChannel(ctx)) {
             // we called initChannel(...) so we need to call now pipeline.fireChannelRegistered() to ensure we not
             // miss an event.
+            //调用上下文关联通道的fireChannelRegistered，确保不会调试事件
             ctx.pipeline().fireChannelRegistered();
         } else {
             // Called initChannel(...) before which is the expected behavior, so just forward the event.
@@ -85,6 +95,7 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
 
     /**
      * Handle the {@link Throwable} by logging and closing the {@link Channel}. Sub-classes may override this.
+     *
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
@@ -96,6 +107,7 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
 
     /**
      * {@inheritDoc} If override this method ensure you call super!
+     *  如果重写，必须保证能够调用super
      */
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
@@ -107,17 +119,21 @@ public abstract class ChannelInitializer<C extends Channel> extends ChannelInbou
             initChannel(ctx);
         }
     }
-
+    // 由于 ChannelInitializer 可以在 Bootstrap/ServerBootstrap 的所有通道中共享，所以我们用一个 ConcurrentMap 作为初始化器
+    // 这种方式，相对于使用 {@link io.netty.util.Attribute} 方式，减少了内存的使用。
     @SuppressWarnings("unchecked")
     private boolean initChannel(ChannelHandlerContext ctx) throws Exception {
         if (initMap.putIfAbsent(ctx, Boolean.TRUE) == null) { // Guard against re-entrance.
             try {
+                // 初始化通道
                 initChannel((C) ctx.channel());
             } catch (Throwable cause) {
+                // 发生异常时，执行异常处理
                 // Explicitly call exceptionCaught(...) as we removed the handler before calling initChannel(...).
                 // We do so to prevent multiple calls to initChannel(...).
                 exceptionCaught(ctx, cause);
             } finally {
+                // 从 pipeline 移除 ChannelInitializer
                 remove(ctx);
             }
             return true;

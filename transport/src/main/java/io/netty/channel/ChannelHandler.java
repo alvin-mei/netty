@@ -181,6 +181,7 @@ public interface ChannelHandler {
 
     /**
      * Gets called after the {@link ChannelHandler} was added to the actual context and it's ready to handle events.
+     * 检测到新连接之后,表示在当前的 channel 中，已经成功添加了一个 handler 处理器
      */
     void handlerAdded(ChannelHandlerContext ctx) throws Exception;
 

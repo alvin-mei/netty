@@ -138,16 +138,21 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
+        // 接受客户端连接
+        // 由于netty中reactor线程第一步就扫描到有accept事件发生，
+        // 因此，这里的accept方法是立即返回的，返回jdk底层nio创建的一条channel
         SocketChannel ch = SocketUtils.accept(javaChannel());
 
         try {
+            // 创建Netty NioSocketChannel对象,将NIO原生socketChannel封装
+            // 一个NioSocketChannel为一条消息
             if (ch != null) {
                 buf.add(new NioSocketChannel(this, ch));
                 return 1;
             }
         } catch (Throwable t) {
             logger.warn("Failed to create a new channel from an accepted socket.", t);
-
+            // 发生异常，关闭客户端的SocketChannel连接
             try {
                 ch.close();
             } catch (Throwable t2) {

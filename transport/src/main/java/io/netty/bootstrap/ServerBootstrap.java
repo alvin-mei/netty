@@ -43,11 +43,14 @@ import java.util.concurrent.TimeUnit;
 public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerChannel> {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(ServerBootstrap.class);
-
+    // 为accept的客户端channel设置的选项参数
     private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<ChannelOption<?>, Object>();
+    // 为accept的客户端channel设置的属性键值对
     private final Map<AttributeKey<?>, Object> childAttrs = new LinkedHashMap<AttributeKey<?>, Object>();
     private final ServerBootstrapConfig config = new ServerBootstrapConfig(this);
+    // subReactor线程池，父类的group成为mainReactor线程池
     private volatile EventLoopGroup childGroup;
+    // subReactor线程池的事件处理器，一般为ChannelInitializer初始化处理器链
     private volatile ChannelHandler childHandler;
 
     public ServerBootstrap() { }
@@ -137,13 +140,14 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         return this;
     }
 
+
+
     @Override
     void init(Channel channel) throws Exception {
         final Map<ChannelOption<?>, Object> options = options0();
         synchronized (options) {
             setChannelOptions(channel, options, logger);
         }
-
         final Map<AttributeKey<?>, Object> attrs = attrs0();
         synchronized (attrs) {
             for (Entry<AttributeKey<?>, Object> e: attrs.entrySet()) {
@@ -152,29 +156,34 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 channel.attr(key).set(e.getValue());
             }
         }
-
+        // 服务端ServerSocketChannel的管道对象，Channel实例化的时候就被创建出来了
         ChannelPipeline p = channel.pipeline();
-
         final EventLoopGroup currentChildGroup = childGroup;
         final ChannelHandler currentChildHandler = childHandler;
         final Entry<ChannelOption<?>, Object>[] currentChildOptions;
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs;
+        // 设置serverChannel的选项参数
         synchronized (childOptions) {
             currentChildOptions = childOptions.entrySet().toArray(newOptionArray(0));
         }
+        //设置serverChannel的属性键值对
         synchronized (childAttrs) {
             currentChildAttrs = childAttrs.entrySet().toArray(newAttrArray(0));
         }
-
+        // 添加处理serverChannel的IO事件处理器
+        // 添加ChannelInitializer对象到pipeline中，用于后续初始化ChannelHandler到pipeline中。
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) throws Exception {
                 final ChannelPipeline pipeline = ch.pipeline();
+                // 添加配置的ChannelHandler到pipeline中。
                 ChannelHandler handler = config.handler();
                 if (handler != null) {
                     pipeline.addLast(handler);
                 }
 
+                // 添加ServerBootstrapAcceptor到pipeline中
+                // 需要保证ServerBootstrapAcceptor被添加到处理器链的最尾部以便不破坏mainReactor将accept接受的Channel连接传递给subReactor
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {
@@ -209,12 +218,15 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         return new Map.Entry[size];
     }
 
+    // 将mainReactor接受的Channel传递给subReactor
+    // Netty将ServerChannel接受客户端连接的accept事件抽象为Read读取事件
     private static class ServerBootstrapAcceptor extends ChannelInboundHandlerAdapter {
-
+        // 记录当前的属性
         private final EventLoopGroup childGroup;
         private final ChannelHandler childHandler;
         private final Entry<ChannelOption<?>, Object>[] childOptions;
         private final Entry<AttributeKey<?>, Object>[] childAttrs;
+        // 自动恢复接受客户端连接的任务
         private final Runnable enableAutoReadTask;
 
         ServerBootstrapAcceptor(
@@ -238,29 +250,34 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             };
         }
 
+        // 接受的客户端的NioSocketChannel注册到EventLoop中
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            // 服务器accept的客户端channel
             final Channel child = (Channel) msg;
-
+            // 添加NioSocketChannel的处理器
             child.pipeline().addLast(childHandler);
-
+            // 设置NioSocketChannel的配置项
             setChannelOptions(child, childOptions, logger);
-
+            // 设置NioSocketChannel的属性
             for (Entry<AttributeKey<?>, Object> e: childAttrs) {
                 child.attr((AttributeKey<Object>) e.getKey()).set(e.getValue());
             }
 
             try {
+                // 注册客户端的NioSocketChannel到work EventLoop中。
                 childGroup.register(child).addListener(new ChannelFutureListener() {
                     @Override
                     public void operationComplete(ChannelFuture future) throws Exception {
+                        // 注册失败，关闭客户端的 NioSocketChannel
                         if (!future.isSuccess()) {
                             forceClose(child, future.cause());
                         }
                     }
                 });
             } catch (Throwable t) {
+                // 发生异常，强制关闭客户端的NioSocketChannel
                 forceClose(child, t);
             }
         }
@@ -270,17 +287,21 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             logger.warn("Failed to register an accepted channel: {}", child, t);
         }
 
+        // 当ServerChannel事件在执行中产生异常时，用户并不希望ServerChannel被关闭，因为还有其他的客户端连接需要处理
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
             final ChannelConfig config = ctx.channel().config();
             if (config.isAutoRead()) {
+                // 关闭接受新的客户端连接
                 // stop accept new connections for 1 second to allow the channel to recover
                 // See https://github.com/netty/netty/issues/1328
                 config.setAutoRead(false);
+                // 发起1秒的延迟任务，恢复重启开启接受新的客户端连接
                 ctx.channel().eventLoop().schedule(enableAutoReadTask, 1, TimeUnit.SECONDS);
             }
             // still let the exceptionCaught event flow through the pipeline to give the user
             // a chance to do something with it
+            // 继续传播 exceptionCaught 给下一个节点
             ctx.fireExceptionCaught(cause);
         }
     }

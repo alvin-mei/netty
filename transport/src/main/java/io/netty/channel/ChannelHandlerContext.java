@@ -153,6 +153,7 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
      */
     boolean isRemoved();
 
+    // 入站事件从双向链表头部处理
     @Override
     ChannelHandlerContext fireChannelRegistered();
 

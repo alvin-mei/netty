@@ -153,6 +153,9 @@ public abstract class Recycler<T> {
     }
 
     @SuppressWarnings("unchecked")
+    // Netty 将在 ThreadLocalMap 中存储了一个 Stack （栈）对象，存储重复使用的 DefaultHandle 实例
+    // 所以这个 Entry 也是重复使用的，每次用完所有参数置为 null，再返回到栈中，下次再用，从这个栈中弹出
+    // 重复利用。对象池的最佳实践。而且是保存再线程中，速度更快，不会有线程竞争
     public final T get() {
         if (maxCapacityPerThread == 0) {
             return newObject((Handle<T>) NOOP_HANDLE);
@@ -211,6 +214,7 @@ public abstract class Recycler<T> {
             this.stack = stack;
         }
 
+        // 回收1个对象（DefaultHandle）就是把该对象push到stack中
         @Override
         public void recycle(Object object) {
             if (object != value) {
@@ -230,6 +234,9 @@ public abstract class Recycler<T> {
 
     // a queue that makes only moderate guarantees about visibility: items are seen in the correct order,
     // but we aren't absolutely guaranteed to ever see anything at all, thereby keeping the queue cheap to maintain
+    // WeakOrderQueue实现了多线程环境下回收对象的机制，当由其它线程回收对象到stack时会为该stack创建1个WeakOrderQueue
+    // 这些由其它线程创建的WeakOrderQueue会在该stack中按链表形式串联起来，每次创建1个WeakOrderQueue会把该WeakOrderQueue作为该stack的head WeakOrderQueue：
+
     private static final class WeakOrderQueue {
 
         static final WeakOrderQueue DUMMY = new WeakOrderQueue();
@@ -583,15 +590,18 @@ public abstract class Recycler<T> {
             Thread currentThread = Thread.currentThread();
             if (threadRef.get() == currentThread) {
                 // The current Thread is the thread that belongs to the Stack, we can try to push the object now.
+                // 如果该stack就是本线程的stack，那么直接把DefaultHandle放到该stack的数组里
                 pushNow(item);
             } else {
                 // The current Thread is not the one that belongs to the Stack
                 // (or the Thread that belonged to the Stack was collected already), we need to signal that the push
                 // happens later.
+                // 如果该stack不是本线程的stack，那么把该DefaultHandle放到该stack的WeakOrderQueue中
                 pushLater(item, currentThread);
             }
         }
 
+        // 直接把DefaultHandle放到stack的数组里，如果数组满了那么扩展该数组为当前2倍大小
         private void pushNow(DefaultHandle<?> item) {
             if ((item.recycleId | item.lastRecycledId) != 0) {
                 throw new IllegalStateException("recycled already");
@@ -612,18 +622,21 @@ public abstract class Recycler<T> {
         }
 
         private void pushLater(DefaultHandle<?> item, Thread thread) {
-            // we don't want to have a ref to the queue as the value in our weak map
-            // so we null it out; to ensure there are no races with restoring it later
-            // we impose a memory ordering here (no-op on x86)
+            //  Recycler有1个stack->WeakOrderQueue映射，每个stack会映射到1个WeakOrderQueue，
+            //  这个WeakOrderQueue是该stack关联的其它线程WeakOrderQueue链表的head WeakOrderQueue。
+            //  当其它线程回收对象到该stack时会创建1个WeakOrderQueue中并加到stack的WeakOrderQueue链表中。
+
             Map<Stack<?>, WeakOrderQueue> delayedRecycled = DELAYED_RECYCLED.get();
             WeakOrderQueue queue = delayedRecycled.get(this);
             if (queue == null) {
+                // 如果delayedRecycled满了那么将1个伪造的WeakOrderQueue（DUMMY）放到delayedRecycled中，并丢弃该对象（DefaultHandle）
                 if (delayedRecycled.size() >= maxDelayedQueues) {
                     // Add a dummy queue so we know we should drop the object
                     delayedRecycled.put(this, WeakOrderQueue.DUMMY);
                     return;
                 }
                 // Check if we already reached the maximum number of delayed queues and if we can allocate at all.
+                // 创建1个WeakOrderQueue
                 if ((queue = WeakOrderQueue.allocate(this, thread)) == null) {
                     // drop object
                     return;
@@ -634,6 +647,7 @@ public abstract class Recycler<T> {
                 return;
             }
 
+            // 将对象放入到该stack对应的WeakOrderQueue中
             queue.add(item);
         }
 

@@ -28,11 +28,13 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
     /**
      * Returns {@code true} if and only if the I/O operation was completed
      * successfully.
+     * 异步操作完成且正常终止
      */
     boolean isSuccess();
 
     /**
      * returns {@code true} if and only if the operation can be cancelled via {@link #cancel(boolean)}.
+     * 异步操作是否可以取消
      */
     boolean isCancellable();
 
@@ -43,6 +45,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      * @return the cause of the failure.
      *         {@code null} if succeeded or this future is not
      *         completed yet.
+     *         异步操作失败的原因
      */
     Throwable cause();
 
@@ -51,6 +54,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      * specified listener is notified when this future is
      * {@linkplain #isDone() done}.  If this future is already
      * completed, the specified listener is notified immediately.
+     * 添加一个监听者，异步操作完成时回调，类比javascript的回调函数
      */
     Future<V> addListener(GenericFutureListener<? extends Future<? super V>> listener);
 
@@ -83,6 +87,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
     /**
      * Waits for this future until it is done, and rethrows the cause of the failure if this future
      * failed.
+     *  阻塞直到异步操作完成，但异步操作失败时抛出异常
      */
     Future<V> sync() throws InterruptedException;
 
@@ -97,6 +102,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      *
      * @throws InterruptedException
      *         if the current thread was interrupted
+     *         阻塞直到异步操作完成
      */
     Future<V> await() throws InterruptedException;
 
@@ -156,6 +162,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      *
      * As it is possible that a {@code null} value is used to mark the future as successful you also need to check
      * if the future is really done with {@link #isDone()} and not relay on the returned {@code null} value.
+     * 非阻塞地返回异步结果，如果尚未完成返回null
      */
     V getNow();
 

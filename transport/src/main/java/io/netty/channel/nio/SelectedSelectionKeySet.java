@@ -20,8 +20,9 @@ import java.util.AbstractSet;
 import java.util.Arrays;
 import java.util.Iterator;
 
+// 继承 AbstractSet 抽象类，已 select 的 NIO SelectionKey 集合
 final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
-
+    // SelectionKey 数组
     SelectionKey[] keys;
     int size;
 
@@ -34,8 +35,9 @@ final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
         if (o == null) {
             return false;
         }
-
+        // 添加到数组
         keys[size++] = o;
+        // 超过数组大小上限，进行扩容
         if (size == keys.length) {
             increaseCapacity();
         }

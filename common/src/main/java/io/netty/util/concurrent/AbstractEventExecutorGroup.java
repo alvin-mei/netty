@@ -35,6 +35,7 @@ public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
         return next().submit(task);
     }
 
+    //提交一个普通任务到 EventExecutor 中
     @Override
     public <T> Future<T> submit(Runnable task, T result) {
         return next().submit(task, result);
@@ -45,6 +46,7 @@ public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
         return next().submit(task);
     }
 
+    // 提交一个定时任务到 EventExecutor 中。
     @Override
     public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
         return next().schedule(command, delay, unit);

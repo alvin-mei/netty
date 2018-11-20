@@ -28,7 +28,7 @@ import java.util.concurrent.ThreadFactory;
 
 /**
  * Abstract base class for {@link EventLoop}s that execute all its submitted tasks in a single thread.
- *
+ * SingleThreadEventLoop终于与Channel取得联系，其中最重要的便是register()方法，功能是将一个Channel对象注册到EventLoop上，其最终实现委托Channel对象的Unsafe对象完成
  */
 public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor implements EventLoop {
 
@@ -56,6 +56,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
                                     boolean addTaskWakesUp, int maxPendingTasks,
                                     RejectedExecutionHandler rejectedExecutionHandler) {
         super(parent, executor, addTaskWakesUp, maxPendingTasks, rejectedExecutionHandler);
+        // 构造任务队列，最终会调用NioEventLoop的newTaskQueue(int maxPendingTasks)方法
         tailTasks = newTaskQueue(maxPendingTasks);
     }
 
@@ -71,12 +72,16 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
 
     @Override
     public ChannelFuture register(Channel channel) {
+        // 当前this对象是属于children[]属性中的其中一个
+        // 将传入的Channel与当前对象this一起封装成DefaultChannelPromise对象
+        // 然后再调用当前对象的register(ChannelPromise)注册方法
         return register(new DefaultChannelPromise(channel, this));
     }
 
     @Override
     public ChannelFuture register(final ChannelPromise promise) {
         ObjectUtil.checkNotNull(promise, "promise");
+        // 注册 Channel 到 EventLoop 上
         promise.channel().unsafe().register(this, promise);
         return promise;
     }
@@ -150,6 +155,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
 
     /**
      * Marker interface for {@link Runnable} that will not trigger an {@link #wakeup(boolean)} in all cases.
+     * 标记接口，用于标记不唤醒原生线程的任务
      */
     interface NonWakeupRunnable extends Runnable { }
 }

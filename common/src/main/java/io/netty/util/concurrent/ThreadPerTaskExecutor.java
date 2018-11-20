@@ -20,7 +20,8 @@ import java.util.concurrent.ThreadFactory;
 
 public final class ThreadPerTaskExecutor implements Executor {
     private final ThreadFactory threadFactory;
-
+    // 线程工厂对象
+    // ThreadPerTaskExecutor 使用了命令模式，execute执行的是命令。ThreadPerTaskExecutor的构造方法只是把DefaultThreadFactory传递进来。
     public ThreadPerTaskExecutor(ThreadFactory threadFactory) {
         if (threadFactory == null) {
             throw new NullPointerException("threadFactory");
@@ -28,8 +29,10 @@ public final class ThreadPerTaskExecutor implements Executor {
         this.threadFactory = threadFactory;
     }
 
+    // 执行任务
     @Override
     public void execute(Runnable command) {
+        //ThreadFactory 执行命令
         threadFactory.newThread(command).start();
     }
 }

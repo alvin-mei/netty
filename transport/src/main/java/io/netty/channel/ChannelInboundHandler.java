@@ -23,6 +23,7 @@ public interface ChannelInboundHandler extends ChannelHandler {
 
     /**
      * The {@link Channel} of the {@link ChannelHandlerContext} was registered with its {@link EventLoop}
+     * 表示当前的 channel 的所有的逻辑处理已经和某个 NIO 线程建立了绑定关系
      */
     void channelRegistered(ChannelHandlerContext ctx) throws Exception;
 
@@ -33,6 +34,8 @@ public interface ChannelInboundHandler extends ChannelHandler {
 
     /**
      * The {@link Channel} of the {@link ChannelHandlerContext} is now active
+     * 当 channel 的所有的业务逻辑链准备完毕（也就是说 channel 的 pipeline 中已经添加完所有的 handler）以及绑定好一个 NIO 线程之后，
+     * 这条连接算是真正激活了,对我们的应用程序来说，表明的含义是 TCP 连接的建立
      */
     void channelActive(ChannelHandlerContext ctx) throws Exception;
 

@@ -436,8 +436,12 @@ public abstract class AbstractTrafficShapingHandler extends ChannelDuplexHandler
                     logger.debug("Not unsuspend: " + config.isAutoRead() + ':' +
                             isHandlerActive(ctx));
                 }
+                // 如果Channel的autoRead为false，并且AbstractTrafficShapingHandler的READ_SUSPENDED属性设置为null或false
+                // （说明读暂停未启用或开启），则直接将READ_SUSPENDED属性设置为false。
                 channel.attr(READ_SUSPENDED).set(false);
             } else {
+                // 否则，如果Channel的autoRead为true，或者READ_SUSPENDED属性的值为true（说明读暂停开启了），则将READ_SUSPENDED属性设置为false，并将Channel的autoRead标识为true
+                // （该操作底层会将该Channel的OP_READ事件重新注册为感兴趣的事件，这样Selector就会监听该Channel的读就绪事件了），最后触发一次Channel的read操作。
                 // Anything else allows the handler to reset the AutoRead
                 if (logger.isDebugEnabled()) {
                     if (config.isAutoRead() && !isHandlerActive(ctx)) {

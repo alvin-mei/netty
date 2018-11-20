@@ -36,7 +36,9 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
     static final long DEFAULT_SHUTDOWN_QUIET_PERIOD = 2;
     static final long DEFAULT_SHUTDOWN_TIMEOUT = 15;
 
+    // 所属 EventExecutorGroup
     private final EventExecutorGroup parent;
+    // EventExecutor 数组。只包含自己
     private final Collection<EventExecutor> selfCollection = Collections.<EventExecutor>singleton(this);
 
     protected AbstractEventExecutor() {
@@ -57,6 +59,7 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         return this;
     }
 
+    // 判断当前线程是否在 EventLoop 线程中
     @Override
     public boolean inEventLoop() {
         return inEventLoop(Thread.currentThread());
@@ -129,6 +132,7 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         return new PromiseTask<T>(this, runnable, value);
     }
 
+    // 使用Netty的PromiseTask代替JDK的FutureTask
     @Override
     protected final <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
         return new PromiseTask<T>(this, callable);

@@ -27,6 +27,8 @@ final class FastThreadLocalRunnable implements Runnable {
     @Override
     public void run() {
         try {
+            // 直接调用的命令的run方法，并没有创建线程
+            //也就是说threadFactory.newThread(command).start()只有一个线程。
             runnable.run();
         } finally {
             FastThreadLocal.removeAll();

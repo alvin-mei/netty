@@ -80,17 +80,24 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         CodecOutputList out = null;
         try {
+            // 判断是否为匹配的消息
             if (acceptOutboundMessage(msg)) {
+                // 创建 CodecOutputList 对象
                 out = CodecOutputList.newInstance();
+                // 转化消息类型
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
                 try {
+                    // 将消息编码成另外一个消息
                     encode(ctx, cast, out);
                 } finally {
+                    // 释放 cast 原消息
                     ReferenceCountUtil.release(cast);
                 }
 
+                // 如果未编码出消息，抛出异常
                 if (out.isEmpty()) {
+                    // 回收 CodecOutputList 对象
                     out.recycle();
                     out = null;
 
@@ -98,6 +105,7 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
                             StringUtil.simpleClassName(this) + " must produce at least one message.");
                 }
             } else {
+                // 直接下一个节点
                 ctx.write(msg, promise);
             }
         } catch (EncoderException e) {
@@ -107,9 +115,13 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
         } finally {
             if (out != null) {
                 final int sizeMinusOne = out.size() - 1;
+                // 只编码出一条消息
                 if (sizeMinusOne == 0) {
+                    // 直接写入新消息到下一个节点
                     ctx.write(out.get(0), promise);
+                    // 编码出多条消息
                 } else if (sizeMinusOne > 0) {
+                    // 第 [0, n-1) 条消息，写入下一个节点，使用 voidPromise ，即不需要回调
                     // Check if we can use a voidPromise for our extra writes to reduce GC-Pressure
                     // See https://github.com/netty/netty/issues/2525
                     ChannelPromise voidPromise = ctx.voidPromise();
@@ -123,6 +135,7 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
                         }
                         ctx.write(out.getUnsafe(i), p);
                     }
+                    // 第 n-1 条消息，写入下一个节点，使用 promise ，即需要回调
                     ctx.write(out.getUnsafe(sizeMinusOne), promise);
                 }
                 out.recycle();

@@ -19,7 +19,8 @@ import io.netty.util.concurrent.OrderedEventExecutor;
 
 /**
  * Will handle all the I/O operations for a {@link Channel} once registered.
- *
+ *  EventLoop 将会处理注册在其上的 Channel 的所有 IO 操作
+ *  EventLoop主要工作就是注册Channel，并负责监控管理Channel的读写等事件，这就涉及到不同的监控方式
  * One {@link EventLoop} instance will usually handle more than one {@link Channel} but this may depend on
  * implementation details and internals.
  *

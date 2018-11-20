@@ -77,6 +77,7 @@ public final class SocketUtils {
     public static boolean connect(final SocketChannel socketChannel, final SocketAddress remoteAddress)
             throws IOException {
         try {
+            // Java 原生 NIO SocketChannel 连接 远程地址，并返回是否连接完成( 成功 )
             return AccessController.doPrivileged(new PrivilegedExceptionAction<Boolean>() {
                 @Override
                 public Boolean run() throws IOException {

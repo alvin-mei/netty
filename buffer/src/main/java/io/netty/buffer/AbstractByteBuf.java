@@ -40,6 +40,7 @@ import static io.netty.util.internal.MathUtil.isOutOfBounds;
 
 /**
  * A skeletal implementation of a buffer.
+ * 抽象基类AbstractByteBuf中定义了ByteBuf的通用操作，比如读写索引以及标记索引的维护、容量扩增以及废弃字节丢弃等等
  */
 public abstract class AbstractByteBuf extends ByteBuf {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractByteBuf.class);
@@ -56,10 +57,15 @@ public abstract class AbstractByteBuf extends ByteBuf {
     static final ResourceLeakDetector<ByteBuf> leakDetector =
             ResourceLeakDetectorFactory.instance().newResourceLeakDetector(ByteBuf.class);
 
+    // 读索引
     int readerIndex;
+    // 写索引
     int writerIndex;
+    // 标记读索引
     private int markedReaderIndex;
+    // 标记写索引
     private int markedWriterIndex;
+    // 最大容量
     private int maxCapacity;
 
     protected AbstractByteBuf(int maxCapacity) {
@@ -199,6 +205,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    // 丢弃已读字节
     @Override
     public ByteBuf discardReadBytes() {
         ensureAccessible();
@@ -207,11 +214,16 @@ public abstract class AbstractByteBuf extends ByteBuf {
         }
 
         if (readerIndex != writerIndex) {
+            // 将readerIndex之后的数据移动到从0开始
             setBytes(0, this, readerIndex, writerIndex - readerIndex);
+            // 写索引减少readerIndex
             writerIndex -= readerIndex;
+            // 标记索引对应调整
             adjustMarkers(readerIndex);
+            // 读索引置0
             readerIndex = 0;
         } else {
+            // 读写索引相同时等同于clear操作
             adjustMarkers(readerIndex);
             writerIndex = readerIndex = 0;
         }

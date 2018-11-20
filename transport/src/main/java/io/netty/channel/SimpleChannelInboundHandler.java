@@ -46,8 +46,9 @@ import io.netty.util.internal.TypeParameterMatcher;
  * </p>
  */
 public abstract class SimpleChannelInboundHandler<I> extends ChannelInboundHandlerAdapter {
-
+    // 适配器类型
     private final TypeParameterMatcher matcher;
+    // 使用完消息，是否自动释放
     private final boolean autoRelease;
 
     /**
@@ -90,6 +91,7 @@ public abstract class SimpleChannelInboundHandler<I> extends ChannelInboundHandl
     /**
      * Returns {@code true} if the given message should be handled. If {@code false} it will be passed to the next
      * {@link ChannelInboundHandler} in the {@link ChannelPipeline}.
+     * 判断消息是否匹配
      */
     public boolean acceptInboundMessage(Object msg) throws Exception {
         return matcher.match(msg);

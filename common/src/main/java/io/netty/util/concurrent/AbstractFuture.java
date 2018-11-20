@@ -22,22 +22,26 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * Abstract {@link Future} implementation which does not allow for cancellation.
- *
+ *AbstractFuture主要实现Future的get()方法，取得Future关联的异步操作结果
  * @param <V>
  */
 public abstract class AbstractFuture<V> implements Future<V> {
 
     @Override
     public V get() throws InterruptedException, ExecutionException {
+        // 阻塞直到异步操作完成
         await();
 
         Throwable cause = cause();
         if (cause == null) {
+            // 成功则返回关联结果
             return getNow();
         }
         if (cause instanceof CancellationException) {
+            // 由用户取消
             throw (CancellationException) cause;
         }
+        // 失败抛出异常
         throw new ExecutionException(cause);
     }
 

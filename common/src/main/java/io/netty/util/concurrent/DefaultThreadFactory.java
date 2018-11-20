@@ -36,6 +36,8 @@ public class DefaultThreadFactory implements ThreadFactory {
     protected final ThreadGroup threadGroup;
 
     public DefaultThreadFactory(Class<?> poolType) {
+        //参数poolType为newDefaultThreadFactory的class，false表示线程不是后台线
+        //程，Thread.NORM_PRIORITY，是正常的线程的优先级(三个优先级：MIN_PRIORITY = 1;NORM_PRIORITY = 5;MAX_PRIORITY = 10;)
         this(poolType, false, Thread.NORM_PRIORITY);
     }
 
@@ -93,9 +95,9 @@ public class DefaultThreadFactory implements ThreadFactory {
         }
 
         prefix = poolName + '-' + poolId.incrementAndGet() + '-';
-        this.daemon = daemon;
-        this.priority = priority;
-        this.threadGroup = threadGroup;
+        this.daemon = daemon;//是否后台线程
+        this.priority = priority; //优先级
+        this.threadGroup = threadGroup; //线程组
     }
 
     public DefaultThreadFactory(String poolName, boolean daemon, int priority) {
@@ -105,6 +107,7 @@ public class DefaultThreadFactory implements ThreadFactory {
 
     @Override
     public Thread newThread(Runnable r) {
+        //将参数r包装为一个FastThreadLocalRunnable(实现了Runnable)
         Thread t = newThread(FastThreadLocalRunnable.wrap(r), prefix + nextId.incrementAndGet());
         try {
             if (t.isDaemon() != daemon) {

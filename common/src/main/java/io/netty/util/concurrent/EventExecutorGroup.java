@@ -25,7 +25,8 @@ import java.util.concurrent.TimeUnit;
  * The {@link EventExecutorGroup} is responsible for providing the {@link EventExecutor}'s to use
  * via its {@link #next()} method. Besides this, it is also responsible for handling their
  * life-cycle and allows shutting them down in a global fashion.
- *
+ * schedule()方法调度任务使任务在延迟一段时间后执行。scheduleAtFixedRate延迟一段时间后以固定频率执行任务，
+ * scheduleWithFixedDelay延迟一段时间后以固定延时执行任务
  */
 public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<EventExecutor> {
 
@@ -37,9 +38,10 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
 
     /**
      * Shortcut method for {@link #shutdownGracefully(long, long, TimeUnit)} with sensible default values.
-     *
+     * 优雅关闭线程池
      * @return the {@link #terminationFuture()}
      */
+
     Future<?> shutdownGracefully();
 
     /**
@@ -61,6 +63,7 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
     /**
      * Returns the {@link Future} which is notified when all {@link EventExecutor}s managed by this
      * {@link EventExecutorGroup} have been terminated.
+     * 返回线程池终止时的异步结果
      */
     Future<?> terminationFuture();
 
@@ -80,6 +83,7 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
 
     /**
      * Returns one of the {@link EventExecutor}s managed by this {@link EventExecutorGroup}.
+     * 从线程池中选择一个线程
      */
     EventExecutor next();
 

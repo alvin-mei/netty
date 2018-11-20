@@ -34,11 +34,14 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
  * Big endian Java heap buffer implementation. It is recommended to use
  * {@link UnpooledByteBufAllocator#heapBuffer(int, int)}, {@link Unpooled#buffer(int)} and
  * {@link Unpooled#wrappedBuffer(byte[])} instead of calling the constructor explicitly.
+ * 该Bytebuf的底层为不使用对象池技术的JAVA堆字节数组
  */
 public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
-
+    // 分配器
     private final ByteBufAllocator alloc;
+    // 底层字节数组
     byte[] array;
+    // NIO的ByteBuffer形式
     private ByteBuffer tmpNioBuf;
 
     /**
@@ -123,19 +126,25 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
         int oldCapacity = array.length;
         byte[] oldArray = array;
+        // 容量扩增
         if (newCapacity > oldCapacity) {
+            // 申请数组
             byte[] newArray = allocateArray(newCapacity);
+            // 将老数组的字节复制到新数组
             System.arraycopy(oldArray, 0, newArray, 0, oldArray.length);
             setArray(newArray);
             freeArray(oldArray);
         } else if (newCapacity < oldCapacity) {
+            // 容量缩减
             byte[] newArray = allocateArray(newCapacity);
             int readerIndex = readerIndex();
+            // 容量缩减导致读写索引改变
             if (readerIndex < newCapacity) {
                 int writerIndex = writerIndex();
                 if (writerIndex > newCapacity) {
                     writerIndex(writerIndex = newCapacity);
                 }
+                // 只拷贝读索引之后的数据，读索引之前0填充
                 System.arraycopy(oldArray, readerIndex, newArray, readerIndex, writerIndex - readerIndex);
             } else {
                 setIndex(newCapacity, newCapacity);

@@ -33,12 +33,15 @@ import java.nio.channels.ScatteringByteChannel;
  * {@link Unpooled#wrappedBuffer(ByteBuffer)} instead of calling the constructor explicitly.
  */
 public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
-
+    // 分配器
     private final ByteBufAllocator alloc;
-
+    // 底层NIO直接ByteBuffer
     private ByteBuffer buffer;
+    // 用于IO操作的ByteBuffer
     private ByteBuffer tmpNioBuf;
+    // ByteBuf的容量
     private int capacity;
+    // 释放标记
     private boolean doNotFree;
 
     /**

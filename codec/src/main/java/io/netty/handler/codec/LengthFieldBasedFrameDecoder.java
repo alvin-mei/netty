@@ -180,14 +180,20 @@ import io.netty.handler.codec.serialization.ObjectDecoder;
  * +------+--------+------+----------------+      +------+----------------+
  * </pre>
  * @see LengthFieldPrepender
+ * 基于长度字段的消息帧解码器LengthFieldBasedFrameDecoder可根据数据包中的长度字段动态的解码出消息帧
  */
 public class LengthFieldBasedFrameDecoder extends ByteToMessageDecoder {
 
+    // 长度字段的字节序：大端或小端
     private final ByteOrder byteOrder;
+
     private final int maxFrameLength;
+    // 长度字段偏移量,在一个数据包中长度字段的具体下标位置
     private final int lengthFieldOffset;
+    // 长度字段的具体字节数
     private final int lengthFieldLength;
     private final int lengthFieldEndOffset;
+    // 长度调节量
     private final int lengthAdjustment;
     private final int initialBytesToStrip;
     private final boolean failFast;

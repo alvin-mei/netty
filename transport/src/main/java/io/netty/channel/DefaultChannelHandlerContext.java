@@ -19,6 +19,8 @@ import io.netty.util.concurrent.EventExecutor;
 
 final class DefaultChannelHandlerContext extends AbstractChannelHandlerContext {
 
+    // pipeline其中形成Context的双向链表，而处理逻辑则在Handler中。
+    // 设计模式中指出，关联Handler与Context的方法有两种：组合和继承。本例中，使用的是组合
     private final ChannelHandler handler;
 
     DefaultChannelHandlerContext(

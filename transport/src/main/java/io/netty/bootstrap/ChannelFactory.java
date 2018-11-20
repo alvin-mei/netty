@@ -19,6 +19,8 @@ import io.netty.channel.Channel;
 
 /**
  * @deprecated Use {@link io.netty.channel.ChannelFactory} instead.
+ * 在服务端创建一个ServerChannel用于接受客户端的连接
+ * 在客户端创建一个Channel用于连接服务端
  */
 @Deprecated
 public interface ChannelFactory<T extends Channel> {
